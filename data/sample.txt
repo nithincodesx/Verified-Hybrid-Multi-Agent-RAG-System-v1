@@ -1,0 +1,41 @@
+The Solar System: A Brief Overview
+
+The Solar System consists of the Sun and everything that orbits it, including eight planets, their moons, dwarf planets, asteroids, comets, and other celestial bodies. The Sun is a yellow dwarf star at the center of the Solar System, containing 99.86% of the system's total mass.
+
+Mercury is the smallest and closest planet to the Sun. It has no atmosphere and experiences extreme temperature variations, reaching up to 430°C (800°F) on its sunlit side and dropping to -180°C (-290°F) on the dark side.
+
+Venus is the second planet from the Sun and is similar in size to Earth. It has a thick carbon dioxide atmosphere that creates a runaway greenhouse effect, making it the hottest planet in the Solar System with surface temperatures around 465°C (869°F).
+
+Earth is the third planet from the Sun and the only known planet to support life. It has a nitrogen-oxygen atmosphere and liquid water on its surface, covering about 71% of the planet.
+
+Mars, the fourth planet, is known as the Red Planet due to its iron oxide-rich surface. It has the largest volcano in the Solar System, Olympus Mons, which stands about 21.9 kilometers (13.6 miles) tall.
+
+Jupiter is the largest planet, a gas giant composed mostly of hydrogen and helium. Its Great Red Spot is a persistent storm larger than Earth that has been observed for hundreds of years.
+
+Saturn is known for its spectacular ring system, made of ice and rock particles. It is the least dense planet in the Solar System; it would float in water if a large enough body of water could be found.
+
+Uranus is an ice giant that rotates on its side, with an axial tilt of about 98 degrees. It has a pale blue-green color due to methane in its atmosphere.
+
+Neptune is the farthest planet from the Sun and the windiest, with wind speeds reaching up to 2,100 kilometers per hour (1,300 miles per hour). It was the first planet located through mathematical prediction rather than observation.
+
+The Solar System also contains the asteroid belt between Mars and Jupiter, the Kuiper Belt beyond Neptune, and the distant Oort Cloud. Pluto, once considered the ninth planet, is now classified as a dwarf planet in the Kuiper Belt.
+
+Climate Change and Its Impacts
+
+Climate change refers to long-term shifts in temperatures and weather patterns, primarily driven by human activities since the Industrial Revolution. The burning of fossil fuels (coal, oil, and natural gas) releases greenhouse gases like carbon dioxide (CO2) and methane into the atmosphere, trapping heat and causing global temperatures to rise.
+
+The average global temperature has increased by approximately 1.1°C (2°F) since the late 19th century. The last decade (2011-2020) was the warmest on record. This warming has led to melting ice sheets and glaciers, contributing to sea level rise of about 20 centimeters (8 inches) in the last century.
+
+The consequences of climate change include more frequent and intense extreme weather events: heatwaves, droughts, wildfires, floods, and hurricanes. Ecosystems are also affected, with many species shifting their ranges or facing extinction due to changing conditions.
+
+International efforts to address climate change include the Paris Agreement, adopted by 196 parties in 2015, which aims to limit global warming to well below 2°C above pre-industrial levels. Renewable energy sources such as solar, wind, and hydroelectric power are being deployed worldwide to reduce greenhouse gas emissions.
+
+Artificial Intelligence: A Modern Overview
+
+Artificial Intelligence (AI) refers to the simulation of human intelligence by computer systems. AI systems can perform tasks that typically require human intelligence, such as visual perception, speech recognition, decision-making, and language translation.
+
+Machine Learning (ML) is a subset of AI where systems learn from data rather than being explicitly programmed. Deep Learning, a further subset, uses multi-layered neural networks to model complex patterns. Large Language Models (LLMs) like GPT-4 and Gemini are examples of deep learning systems trained on vast text datasets.
+
+AI is used in many fields including healthcare (diagnostic imaging and drug discovery), transportation (self-driving cars), finance (fraud detection and algorithmic trading), and entertainment (content recommendation systems).
+
+Ethical concerns surrounding AI include bias in training data, job displacement, privacy issues, and the potential for misuse. Many organizations are developing AI safety frameworks to ensure responsible development and deployment of AI technologies.

@@ -1,0 +1,21 @@
+# API keys / provider credentials (written by the settings panel)
+provider_settings.json
+.env
+.env.local
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Frontend build
+frontend/dist/
+frontend/node_modules/
+
+# Logs / runtime
+*.log
+nul
+
+# ChromaDB persistent store
+chroma_data/
