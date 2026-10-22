@@ -19,6 +19,14 @@ class QueryRequest(BaseModel):
     query: str = Field(..., min_length=1, description="User's question")
     top_k: Optional[int] = Field(None, ge=1, le=20, description="Override top-K")
     filter_source: Optional[str] = Field(None, description="Restrict search to a specific document source (filename)")
+    # ── Optional query expansion (off by default) ──
+    enable_query_expansion: Optional[bool] = Field(None, description="Expand the query with related terms before retrieval")
+    query_expansion_strategy: Optional[str] = Field(None, description="Expansion strategy: llm | synonym | hybrid")
+    query_expansion_max_terms: Optional[int] = Field(None, ge=1, le=20, description="Maximum expansion terms to generate")
+    # ── Optional cross-encoder reranking (off by default) ──
+    enable_reranking: Optional[bool] = Field(None, description="Rerank retrieved chunks with a cross-encoder model")
+    reranker_model: Optional[str] = Field(None, description="Cross-encoder model name (default from config)")
+    reranker_top_k: Optional[int] = Field(None, ge=0, le=50, description="Top-K chunks to keep after reranking (0 = keep all)")
 
 
 # ── Retrieval ──────────────────────────────────────────────────────────
@@ -34,10 +42,19 @@ class SourceChunk(BaseModel):
 class RetrievalResult(BaseModel):
     """The retriever agent's full output."""
     query: str = Field(..., description="Original query")
+    expanded_query: Optional[str] = Field(None, description="Query after expansion (if expansion was applied)")
+    expansion_applied: bool = Field(False, description="Whether query expansion was applied")
+    expansion_strategy: Optional[str] = Field(None, description="Expansion strategy used")
+    expansion_terms: List[str] = Field(default_factory=list, description="Expansion terms added")
     chunks: List[SourceChunk] = Field(default_factory=list)
     latency_ms: float = 0.0
     hybrid_used: bool = Field(False, description="Whether hybrid search (vector + BM25) was used")
     below_threshold: bool = Field(False, description="Whether top chunk fell below confidence threshold")
+    # ── Reranking metadata ──
+    reranking_applied: bool = Field(False, description="Whether cross-encoder reranking was applied")
+    reranker_model: Optional[str] = Field(None, description="Reranker model used")
+    reranker_fallback_used: bool = Field(False, description="Whether fallback scoring was used instead of the model")
+    reranker_error: Optional[str] = Field(None, description="Reranking error message, if any")
 
 
 # ── Draft ──────────────────────────────────────────────────────────────
@@ -45,6 +62,7 @@ class RetrievalResult(BaseModel):
 class DraftResult(BaseModel):
     """The draft agent's output — an answer built only from context."""
     answer: str = Field(..., description="Generated answer text")
+    latency_ms: float = 0.0
 
 
 # ── Verification ───────────────────────────────────────────────────────
@@ -68,6 +86,7 @@ class VerificationResult(BaseModel):
     verified_answer: Optional[str] = Field(
         None, description="Cleaned answer with unsupported claims removed"
     )
+    latency_ms: float = 0.0
 
 
 # ── Pipeline response (the single endpoint return type) ────────────────
@@ -147,6 +166,12 @@ class ProviderSettingsResponse(BaseModel):
     embedding_model: str = ""
     draft_model: str = ""
     verifier_model: str = ""
+    # Query expansion & reranking config (read-only)
+    enable_query_expansion: bool = False
+    query_expansion_strategy: str = "llm"
+    query_expansion_max_terms: int = 5
+    enable_reranking: bool = False
+    reranker_model: str = "BAAI/bge-reranker-base"
 
 
 # ── Health / Status ────────────────────────────────────────────────────

@@ -26,7 +26,7 @@ function highlightFlaggedClaims(draftText, unsupportedClaims) {
       return (
         <span
           key={i}
-          className="bg-[rgba(251,113,133,0.06)] text-[#fb7185] line-through decoration-2 decoration-[rgba(251,113,133,0.25)] rounded-sm px-0.5"
+          className="bg-[var(--danger-border-faint)] text-danger line-through decoration-2 decoration-[var(--danger-border-focus)] rounded-sm px-0.5"
           title="Flagged as unsupported by the verifier"
         >
           {part}
@@ -113,14 +113,14 @@ export default function CompareView({ result }) {
             <div className="flex items-center gap-2 mb-3">
               <motion.div
                 whileHover={{ rotate: -5 }}
-                className="w-6 h-6 rounded-lg bg-[rgba(26,226,16,0.08)] flex items-center justify-center"
+                className="w-6 h-6 rounded-lg bg-accent-tint flex items-center justify-center"
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1AE210" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                 </svg>
               </motion.div>
-              <span className="text-[13px] font-semibold text-[#1AE210] tracking-wide uppercase font-mono">Raw Draft</span>
+              <span className="text-[13px] font-semibold text-accent-deep tracking-wide uppercase font-mono">Raw Draft</span>
               {unsupportedClaims.length > 0 && (
                 <motion.span
                   initial={{ scale: 0 }}
@@ -143,7 +143,7 @@ export default function CompareView({ result }) {
                 className="mt-3 pt-3 border-t border-separator"
               >
                 <div className="flex items-center gap-2 text-[11px] text-muted font-mono">
-                  <span className="inline-block w-3 h-3 rounded bg-[rgba(251,113,133,0.06)] border border-[rgba(251,113,133,0.12)]" />
+                  <span className="inline-block w-3 h-3 rounded bg-[var(--danger-border-faint)] border border-[var(--danger-border)]" />
                   <span>Flagged claim — not supported by source documents</span>
                 </div>
               </motion.div>
@@ -155,19 +155,19 @@ export default function CompareView({ result }) {
             initial={{ opacity: 0, x: 24, filter: "blur(8px)" }}
             animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
             transition={{ ...spring, delay: 0.06 }}
-            className="glass-strong relative overflow-hidden rounded-2xl p-5 border border-[rgba(52,211,153,0.04)]"
+            className="glass-strong relative overflow-hidden rounded-2xl p-5 border border-[var(--success-border-faint)]"
           >
             <GlowingEffect spread={36} glow proximity={60} inactiveZone={0.01} />
             <div className="flex items-center gap-2 mb-3">
               <motion.div
                 whileHover={{ rotate: 5 }}
-                className="w-6 h-6 rounded-lg bg-[rgba(52,211,153,0.08)] flex items-center justify-center"
+                className="w-6 h-6 rounded-lg bg-success-soft flex items-center justify-center"
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </motion.div>
-              <span className="text-[13px] font-semibold text-[#34d399] tracking-wide uppercase font-mono">Verified Answer</span>
+              <span className="text-[13px] font-semibold text-success tracking-wide uppercase font-mono">Verified Answer</span>
               {supportedClaims.length > 0 && (
                 <motion.span
                   initial={{ scale: 0 }}
@@ -189,7 +189,7 @@ export default function CompareView({ result }) {
               className="mt-3 pt-3 border-t border-separator"
             >
               <div className="flex items-center gap-2 text-[11px] text-muted font-mono">
-                <span className="inline-block w-3 h-3 rounded bg-[rgba(52,211,153,0.06)] border border-[rgba(52,211,153,0.12)]" />
+                <span className="inline-block w-3 h-3 rounded bg-[var(--success-border-faint)] border border-[var(--success-border)]" />
                 <span>Every claim backed by source text</span>
               </div>
             </motion.div>
@@ -218,8 +218,8 @@ export default function CompareView({ result }) {
                 transition={{ ...springReveal, delay: i * 0.03 }}
                 className={`flex items-start gap-2.5 rounded-lg px-3 py-2 ${
                   v.supported
-                    ? "bg-[rgba(52,211,153,0.015)]"
-                    : "bg-[rgba(251,113,133,0.02)]"
+                    ? "bg-success-faintest"
+                    : "bg-danger-faintest"
                 }`}
               >
                 <motion.span
@@ -228,15 +228,15 @@ export default function CompareView({ result }) {
                   transition={{ ...springBouncy, delay: i * 0.03 }}
                   className={`mt-0.5 shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
                     v.supported
-                      ? "bg-[rgba(52,211,153,0.1)] text-[#34d399]"
-                      : "bg-[rgba(251,113,133,0.1)] text-[#fb7185]"
+                      ? "bg-success-soft text-success"
+                      : "bg-danger-soft text-danger"
                   }`}
                 >
                   {v.supported ? "✓" : "✗"}
                 </motion.span>
                 <div className="flex-1 min-w-0">
                   <p className={`text-[12px] leading-relaxed font-mono ${
-                    v.supported ? "text-dim" : "text-[#fb7185]"
+                    v.supported ? "text-dim" : "text-danger"
                   }`}>
                     {v.claim}
                   </p>

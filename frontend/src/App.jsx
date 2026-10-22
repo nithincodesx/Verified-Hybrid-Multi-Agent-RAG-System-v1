@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import QueryInput from "./components/QueryInput";
 import PipelineView from "./components/PipelineView";
+import PipelineProgress from "./components/PipelineProgress";
 import DocumentUpload from "./components/DocumentUpload";
 import DocumentDashboard from "./components/DocumentDashboard";
 import ThemeToggle from "./components/ThemeToggle";
@@ -9,7 +10,7 @@ import ProviderSettings from "./components/ProviderSettings";
 import GlowingEffect from "./components/GlowingEffect";
 import HowItWorks from "./components/HowItWorks";
 import PipelineWorkflow from "./components/PipelineWorkflow";
-import { runPipeline, getProviderSettings } from "./api";
+import { runPipeline, getProviderSettings, streamPipeline } from "./api";
 
 /* ═══════════════════════════════════════════════════════════════════
    SPRING PHYSICS PRESETS
@@ -35,16 +36,16 @@ const slideUpBlur = (delay = 0) => ({
 
 /* ── Provider metadata ──────────────────────────────────────────── */
 const PROVIDER_META = {
-  openai: { label: "OpenAI", color: "#10a37f" },
-  openrouter: { label: "OpenRouter", color: "#8b5cf6" },
-  ollama: { label: "Ollama", color: "#1AE210" },
+  openai: { label: "OpenAI", color: "var(--provider-openai)" },
+  openrouter: { label: "OpenRouter", color: "var(--provider-openrouter)" },
+  ollama: { label: "Ollama", color: "var(--provider-ollama)" },
 };
 
-/* ── Green neon constants ───────────────────────────────────────── */
-const NEON = "#1AE210";
-const NEON_DIM = "#6C9964";
-const NEON_FAINT = "rgba(26, 226, 16, 0.08)";
-const NEON_GLOW = "rgba(26, 226, 16, 0.12)";
+/* ── Blue accent constants ──────────────────────────────────────── */
+const NEON = "var(--accent)";
+const NEON_DIM = "var(--accent-dim)";
+const NEON_FAINT = "var(--accent-soft-xs)";
+const NEON_GLOW = "var(--accent-soft)";
 
 /* ── Navigation sections ────────────────────────────────────────── */
 const SECTIONS = [
@@ -60,16 +61,21 @@ export default function App() {
   const [activeSection, setActiveSection] = useState("pipeline");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(null);
   const [error, setError] = useState(null);
   const [dashRefresh, setDashRefresh] = useState(0);
   const [filterSource, setFilterSource] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   const [provider, setProvider] = useState("ollama");
+  const [enableQueryExpansion, setEnableQueryExpansion] = useState(false);
+  const [queryExpansionStrategy, setQueryExpansionStrategy] = useState("llm");
+  const [enableReranking, setEnableReranking] = useState(false);
   const [theme, setTheme] = useState(() => {
     return typeof window !== "undefined"
-      ? localStorage.getItem("rag-theme") || "dark"
-      : "dark";
+      ? localStorage.getItem("rag-theme") || "light"
+      : "light";
   });
+  const abortRef = useRef(null);
   const resultRef = useRef(null);
 
   useEffect(() => {
@@ -86,18 +92,48 @@ export default function App() {
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
   const handleQuery = async (query, opts = {}) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setLoading(true);
     setError(null);
     setResult(null);
+    setProgress(null);
     try {
-      const data = await runPipeline(query, {
+      const data = await streamPipeline(query, {
         filterSource: opts.filterSource || filterSource || undefined,
+        enableQueryExpansion: opts.enableQueryExpansion ?? enableQueryExpansion,
+        queryExpansionStrategy: opts.queryExpansionStrategy ?? queryExpansionStrategy,
+        enableReranking: opts.enableReranking ?? enableReranking,
+        signal: controller.signal,
+        onStage: (evt) => {
+          setProgress((prev) => ({ ...(prev ?? {}), [evt.stage]: evt }));
+        },
       });
       setResult(data);
       if (data.error) setError(data.error);
     } catch (err) {
+      if (err?.name === "AbortError") return; // cancelled — stay quiet
+      // SSE stream unavailable (proxy / network) — fall back to blocking call
+      if (String(err?.message ?? "").includes("Pipeline stream")) {
+        try {
+          const data = await runPipeline(query, {
+            filterSource: opts.filterSource || filterSource || undefined,
+            enableQueryExpansion: opts.enableQueryExpansion ?? enableQueryExpansion,
+            queryExpansionStrategy: opts.queryExpansionStrategy ?? queryExpansionStrategy,
+            enableReranking: opts.enableReranking ?? enableReranking,
+          });
+          setResult(data);
+          if (data.error) setError(data.error);
+          return;
+        } catch (fallbackErr) {
+          setError(fallbackErr.message ?? "An unexpected error occurred.");
+          return;
+        }
+      }
       setError(err.message ?? "An unexpected error occurred.");
     } finally {
+      if (abortRef.current === controller) abortRef.current = null;
       setLoading(false);
       setTimeout(() => {
         resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -105,17 +141,22 @@ export default function App() {
     }
   };
 
+  const handleCancel = () => {
+    abortRef.current?.abort();
+    setLoading(false);
+  };
+
   return (
-    <div className="min-h-screen relative overflow-hidden selection:bg-[rgba(26,226,16,0.3)] selection:text-white">
+    <div className="min-h-screen relative overflow-hidden selection-accent selection-on-accent">
       {/* ══════════════════════════════════════════════════════════
          AMBIENT BACKGROUND
          ══════════════════════════════════════════════════════════ */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden>
         <div className="absolute top-[-22%] left-1/2 -translate-x-1/2 w-[900px] h-[650px] rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(26,226,16,0.07) 0%, rgba(26,226,16,0.02) 35%, transparent 65%)", filter: "blur(90px)" }}
+          style={{ background: "radial-gradient(circle, var(--orb-accent-1) 0%, var(--orb-accent-2) 35%, transparent 65%)", filter: "blur(90px)" }}
         />
         <div className="absolute bottom-[-15%] right-[-10%] w-[500px] h-[500px] rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(26,226,16,0.02) 0%, transparent 60%)", filter: "blur(60px)" }}
+          style={{ background: "radial-gradient(circle, var(--orb-accent-3) 0%, transparent 60%)", filter: "blur(60px)" }}
         />
         <div className="orbital-ring w-[640px] h-[640px] -top-48 -right-48" />
         <div className="orbital-ring w-[420px] h-[420px] -bottom-36 -left-24" />
@@ -189,7 +230,7 @@ export default function App() {
             className="flex items-center gap-2.5"
           >
             <div className="relative w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: "rgba(26,226,16,0.08)", border: "1px solid rgba(26,226,16,0.18)", boxShadow: "0 0 24px rgba(26,226,16,0.08)" }}>
+              style={{ background: "var(--accent-tint)", border: "1px solid var(--accent-tint-border)" }}>
               <span className="text-[16px] font-black tracking-tight" style={{ color: NEON }}>R</span>
             </div>
             <span className="text-[17px] font-bold text-primary tracking-tight hidden sm:block">
@@ -295,9 +336,9 @@ export default function App() {
                   <span className="text-[10px] font-semibold tracking-[0.12em] uppercase font-mono" style={{ color: NEON }}>
                     Verified RAG System
                   </span>
-                  <span className="w-1 h-1 rounded-full bg-[rgba(255,255,255,0.08)]" />
+                  <span className="w-1 h-1 rounded-full bg-overlay-4" />
                   <span className="text-[10px] text-dim font-mono tracking-wide">v2.0</span>
-                  <span className="w-1 h-1 rounded-full bg-[rgba(255,255,255,0.08)]" />
+                  <span className="w-1 h-1 rounded-full bg-overlay-4" />
                   <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold font-mono tracking-wide uppercase"
                     style={{ color: PROVIDER_META[provider]?.color || NEON }}>
                     <span className="w-1.5 h-1.5 rounded-full"
@@ -315,7 +356,7 @@ export default function App() {
                 >
                   Ask with{" "}
                   <span className="text-transparent bg-clip-text"
-                    style={{ backgroundImage: `linear-gradient(135deg, ${NEON} 0%, #34d399 50%, ${NEON} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                    style={{ backgroundImage: `linear-gradient(135deg, ${NEON} 0%, ${NEON_DIM} 50%, ${NEON} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                     confidence
                   </span>
                 </motion.h1>
@@ -339,7 +380,7 @@ export default function App() {
                   className="flex items-center justify-center gap-3 flex-wrap"
                 >
                   <div className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[11px] font-mono font-semibold"
-                    style={{ color: NEON, background: "rgba(26,226,16,0.04)", border: "1px solid rgba(26,226,16,0.15)", boxShadow: `0 0 20px ${NEON_FAINT}` }}>
+                    style={{ color: NEON, background: "var(--accent-tint)", border: "1px solid var(--accent-border-soft)" }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={NEON} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                       <polyline points="9 12 11 14 15 10" />
@@ -348,7 +389,7 @@ export default function App() {
                   </div>
                   <span className="w-1 h-1 rounded-full hidden sm:block" style={{ background: `${NEON}30` }} />
                   <div className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[11px] font-mono font-semibold"
-                    style={{ color: NEON, background: "rgba(26,226,16,0.04)", border: "1px solid rgba(26,226,16,0.15)", boxShadow: `0 0 20px ${NEON_FAINT}` }}>
+                    style={{ color: NEON, background: "var(--accent-tint)", border: "1px solid var(--accent-border-soft)" }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={NEON} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                       <polyline points="22 4 12 14.01 9 11.01" />
@@ -393,7 +434,7 @@ export default function App() {
                       className="rounded-full px-4 py-2 text-[12px] font-semibold font-mono tracking-wide transition-all duration-300"
                       style={
                         isActive
-                          ? { color: "#fff", background: NEON, boxShadow: `0 0 24px ${NEON_GLOW}, 0 0 8px ${NEON_FAINT}` }
+                          ? { color: "var(--on-accent)", background: NEON, boxShadow: `0 0 24px ${NEON_GLOW}, 0 0 8px ${NEON_FAINT}` }
                           : { color: "var(--text-muted)", background: "var(--bg-card)", border: "1px solid var(--border-glass)" }
                       }
                     >
@@ -419,6 +460,12 @@ export default function App() {
                 loading={loading}
                 filterSource={filterSource}
                 onFilterSourceChange={setFilterSource}
+                enableQueryExpansion={enableQueryExpansion}
+                setEnableQueryExpansion={setEnableQueryExpansion}
+                queryExpansionStrategy={queryExpansionStrategy}
+                setQueryExpansionStrategy={setQueryExpansionStrategy}
+                enableReranking={enableReranking}
+                setEnableReranking={setEnableReranking}
               />
 
               {/* ── Loading State ─────────────────────────────────── */}
@@ -430,34 +477,21 @@ export default function App() {
                     exit={{ opacity: 0, scale: 0.94, filter: "blur(6px)" }}
                     transition={springFloat}
                     className="mb-6">
-                    <div className="glass-strong relative overflow-hidden rounded-2xl p-8 flex flex-col items-center gap-5">
+                    <PipelineProgress progress={progress ?? {
+                      retrieval: { stage: "retrieval", status: "started" },
+                    }} />
+                    <div className="glass-strong relative overflow-hidden rounded-2xl p-5 flex items-center justify-center gap-4">
                       <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} />
-                      <motion.div animate={{ rotate: 360 }}
-                        transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                        className="relative w-10 h-10">
-                        {[{ color: NEON, delay: 0 }, { color: "#34d399", delay: 0.75 }, { color: "#60a5fa", delay: 1.5 }, { color: NEON_DIM, delay: 2.25 }].map((dot, i) => (
-                          <motion.div key={i} className="absolute w-2 h-2 rounded-full"
-                            style={{ background: dot.color, boxShadow: `0 0 12px ${dot.color}40`,
-                              ...(i === 0 ? { top: 0, left: "50%", transform: "translateX(-50%)" } : {}),
-                              ...(i === 1 ? { bottom: 0, left: "50%", transform: "translateX(-50%)" } : {}),
-                              ...(i === 2 ? { left: 0, top: "50%", transform: "translateY(-50%)" } : {}),
-                              ...(i === 3 ? { right: 0, top: "50%", transform: "translateY(-50%)" } : {}),
-                            }}
-                            animate={{ opacity: [1, 0.2, 1] }}
-                            transition={{ duration: 1.5, repeat: Infinity, delay: dot.delay, ease: "easeInOut" }} />
-                        ))}
-                      </motion.div>
-                      <div className="flex flex-col items-center gap-2">
-                        <span className="text-[13px] text-muted font-mono">Running pipeline&hellip;</span>
-                        <div className="flex items-center gap-5 text-[11px] text-dim font-mono">
-                          {[{ label: "Retrieve", color: NEON }, { label: "Draft", color: "#34d399" }, { label: "Verify", color: "#60a5fa" }].map((step, i) => (
-                            <span key={step.label} className="flex items-center gap-1.5">
-                              <span className="w-1.5 h-1.5 rounded-full" style={{ background: step.color, boxShadow: `0 0 8px ${step.color}60` }} />
-                              {step.label}{i < 2 && <span className="text-dim ml-1 opacity-40">&rarr;</span>}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
+                      <span className="text-[12px] text-muted font-mono">Running pipeline&hellip;</span>
+                      <motion.button
+                        onClick={handleCancel}
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.96 }}
+                        transition={springSnappy}
+                        className="rounded-lg px-3.5 py-1.5 text-[11px] font-mono text-muted border border-glass hover:text-primary hover:border-danger-focus transition-colors"
+                      >
+                        Cancel
+                      </motion.button>
                     </div>
                   </motion.div>
                 )}
@@ -479,16 +513,16 @@ export default function App() {
                     exit={{ opacity: 0, y: -12, filter: "blur(6px)" }}
                     transition={springFloat}
                     className="mt-6">
-                    <div className="glass-strong relative overflow-hidden rounded-2xl p-5 border border-[rgba(251,113,133,0.08)]">
+                    <div className="glass-strong relative overflow-hidden rounded-2xl p-5 border border-danger-faint">
                       <GlowingEffect spread={36} glow proximity={56} inactiveZone={0.02} />
                       <div className="flex items-center gap-2.5 mb-3">
-                        <div className="w-7 h-7 rounded-lg bg-[rgba(255,255,255,0.05)] flex items-center justify-center shrink-0">
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fb7185" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <div className="w-7 h-7 rounded-lg bg-overlay-2 flex items-center justify-center shrink-0">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                           </svg>
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[13px] font-semibold text-[#fb7185]">Connection Error</p>
+                          <p className="text-[13px] font-semibold text-danger">Connection Error</p>
                           <p className="text-[12px] text-muted mt-0.5 leading-relaxed break-words">{error}</p>
                         </div>
                       </div>
@@ -513,7 +547,7 @@ export default function App() {
                     <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                       transition={{ ...springBouncy, delay: 0.7 }}
                       className="w-14 h-14 mx-auto mb-5 rounded-2xl glass-strong flex items-center justify-center"
-                      style={{ boxShadow: `0 0 32px ${NEON_FAINT}`, border: `1px solid rgba(26,226,16,0.1)` }}>
+                      style={{ boxShadow: `0 0 32px ${NEON_FAINT}`, border: `1px solid ${NEON}1f` }}>
                       <motion.svg animate={{ rotate: [0, 6, -6, 0] }}
                         transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
                         width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={NEON_DIM} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -527,12 +561,12 @@ export default function App() {
                     </p>
                     <div className="flex items-center justify-center gap-4 mt-5 text-[10px] text-dim font-mono">
                       <span className="flex items-center gap-1.5">
-                        <kbd className="px-1.5 py-0.5 rounded bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.06)] text-subtle text-[9px]">⏎</kbd>
+                        <kbd className="px-1.5 py-0.5 rounded bg-overlay-1 border border-overlay-soft text-subtle text-[9px]">⏎</kbd>
                         <span>to submit</span>
                       </span>
                       <span className="w-px h-3 bg-separator" />
                       <span className="flex items-center gap-1.5">
-                        <kbd className="px-1.5 py-0.5 rounded bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.06)] text-subtle text-[9px]">⇧⏎</kbd>
+                        <kbd className="px-1.5 py-0.5 rounded bg-overlay-1 border border-overlay-soft text-subtle text-[9px]">⇧⏎</kbd>
                         <span>new line</span>
                       </span>
                     </div>

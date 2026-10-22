@@ -6,10 +6,10 @@ const spring = { type: "spring", stiffness: 220, damping: 24, mass: 0.85 };
 const springBouncy = { type: "spring", stiffness: 380, damping: 14, mass: 0.6 };
 const springReveal = { type: "spring", stiffness: 200, damping: 22, mass: 0.9 };
 
-const NEON = "#1AE210";
-const NEON_DIM = "#6C9964";
-const NEON_FAINT = "rgba(26, 226, 16, 0.08)";
-const NEON_GLOW = "rgba(26, 226, 16, 0.12)";
+const NEON = "#3b82f6";
+const NEON_DIM = "#60a5fa";
+const NEON_FAINT = "rgba(59, 130, 246, 0.08)";
+const NEON_GLOW = "rgba(59, 130, 246, 0.12)";
 
 /* ── Pipeline steps for the flowchart ──────────────────────────── */
 const STEPS = [
@@ -480,7 +480,7 @@ function DiagramArrow() {
     <div className="w-px h-5 flex items-center justify-center">
       <div
         className="w-px h-full"
-        style={{ background: "linear-gradient(to bottom, rgba(26,226,16,0.25), transparent)" }}
+        style={{ background: "linear-gradient(to bottom, rgba(59,130,246,0.25), transparent)" }}
       />
     </div>
   );

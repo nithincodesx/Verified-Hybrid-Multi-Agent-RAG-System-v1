@@ -41,7 +41,7 @@ function scoreBadgeClass(score) {
 }
 
 export default function RetrievalCard({ retrieval, index }) {
-  const { chunks, latency_ms, hybrid_used } = retrieval ?? {};
+  const { chunks, latency_ms, hybrid_used, expanded_query, expansion_applied, reranking_applied, reranker_fallback_used, reranker_error } = retrieval ?? {};
   if (!chunks || chunks.length === 0) return null;
 
   return (
@@ -53,24 +53,24 @@ export default function RetrievalCard({ retrieval, index }) {
     >
       <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} />
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-start justify-between gap-3 mb-4">
         <motion.div
           initial={{ x: -8, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ ...spring, delay: 0.08 }}
-          className="flex items-center gap-2.5"
+          className="flex flex-col items-start gap-2 min-w-0"
         >
-          <motion.div
-            whileHover={{ rotate: 12, scale: 1.05 }}
-            transition={springBouncy}
-            className="w-7 h-7 rounded-lg bg-[rgba(96,165,250,0.08)] flex items-center justify-center"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-          </motion.div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <motion.div
+              whileHover={{ rotate: 12, scale: 1.05 }}
+              transition={springBouncy}
+              className="w-7 h-7 rounded-lg bg-[rgba(96,165,250,0.08)] flex items-center justify-center shrink-0"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </motion.div>
             <span className="text-sm font-semibold text-[#93c5fd] tracking-wide uppercase">
               Retrieval
             </span>
@@ -84,7 +84,50 @@ export default function RetrievalCard({ retrieval, index }) {
                 hybrid
               </motion.span>
             )}
+            {expansion_applied && (
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ ...springBouncy, delay: 0.3 }}
+              className="mono-metric px-1.5 py-0.5 rounded bg-[rgba(59,130,246,0.06)] text-[#3b82f6] border border-[rgba(59,130,246,0.1)]"
+            >
+              expanded
+            </motion.span>
+          )}
+          {reranking_applied && (
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ ...springBouncy, delay: 0.35 }}
+              className={`mono-metric px-1.5 py-0.5 rounded ${reranker_fallback_used
+                ? "bg-[rgba(251,191,36,0.06)] text-[#fbbf24] border border-[rgba(251,191,36,0.1)]"
+                : "bg-[rgba(96,165,250,0.06)] text-[#60a5fa] border border-[rgba(96,165,250,0.1)]"}`}
+            >
+              {reranker_fallback_used ? "rerank-fallback" : "reranked"}
+            </motion.span>
+          )}
           </div>
+
+          {expansion_applied && expanded_query && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+              className="text-[10px] text-muted font-mono italic"
+            >
+              Expanded: {expanded_query}
+            </motion.div>
+          )}
+          {reranker_error && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="text-[10px] text-[#f87171] font-mono"
+            >
+              Rerank error: {reranker_error}
+            </motion.div>
+          )}
         </motion.div>
         <motion.span
           initial={{ opacity: 0 }}
@@ -108,7 +151,7 @@ export default function RetrievalCard({ retrieval, index }) {
           <div
             className="h-full w-full rounded-full"
             style={{
-              background: "linear-gradient(90deg, rgba(96,165,250,0.08) 0%, rgba(26,226,16,0.15) 50%, rgba(52,211,153,0.2) 100%)",
+              background: "linear-gradient(90deg, rgba(96,165,250,0.08) 0%, rgba(59,130,246,0.15) 50%, rgba(52,211,153,0.2) 100%)",
             }}
           />
         </div>

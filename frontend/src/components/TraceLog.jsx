@@ -55,7 +55,7 @@ export default function TraceLog({ data }) {
             transition={springReveal}
             className="overflow-hidden"
           >
-            <pre className="mt-3 p-4 rounded-xl bg-[rgba(0,0,0,0.35)] border border-[rgba(255,255,255,0.03)] overflow-hidden">
+            <pre className="mt-3 p-4 rounded-xl bg-code border border-code-border overflow-hidden">
               <code className="block text-[11px] leading-relaxed mono-code text-muted whitespace-pre-wrap overflow-x-auto max-h-[380px] overflow-y-auto">
                 {JSON.stringify(data, null, 2)}
               </code>

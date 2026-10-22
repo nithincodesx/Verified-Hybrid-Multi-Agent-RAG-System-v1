@@ -9,6 +9,7 @@ frontend can render each stage.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import time
@@ -18,8 +19,9 @@ from typing import AsyncGenerator, List
 import uuid
 
 import chromadb
-from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from backend.agents.drafter import DraftAgent
 from backend.agents.retriever import RetrieverAgent
 from backend.agents.verifier import VerifierAgent
@@ -329,6 +331,11 @@ def _settings_response() -> ProviderSettingsResponse:
         embedding_model=s.embedding_model,
         draft_model=s.draft_model,
         verifier_model=s.verifier_model,
+        enable_query_expansion=s.enable_query_expansion,
+        query_expansion_strategy=s.query_expansion_strategy,
+        query_expansion_max_terms=s.query_expansion_max_terms,
+        enable_reranking=s.enable_reranking,
+        reranker_model=s.reranker_model,
     )
 
 
@@ -420,6 +427,11 @@ async def run_pipeline(req: QueryRequest) -> PipelineResponse:
             query=req.query,
             top_k=req.top_k,
             filter_source=req.filter_source,
+            enable_query_expansion=req.enable_query_expansion or False,
+            query_expansion_strategy=req.query_expansion_strategy or "llm",
+            query_expansion_max_terms=req.query_expansion_max_terms or 5,
+            enable_reranking=req.enable_reranking or False,
+            reranker_top_k=req.reranker_top_k,
         )
         logger.info(
             "   retrieved %d chunks in %.0f ms (hybrid=%s, below_threshold=%s)",
@@ -479,11 +491,137 @@ async def run_pipeline(req: QueryRequest) -> PipelineResponse:
     pipeline_latency = round((time.perf_counter() - pipeline_start) * 1000, 1)
     logger.info("✅ Pipeline complete in %.0f ms", pipeline_latency)
 
-    return PipelineResponse(
+    final = PipelineResponse(
         query=req.query,
         retrieval=retrieval,
         draft=draft,
         verification=verification,
         pipeline_latency_ms=pipeline_latency,
         filter_source=req.filter_source,
+    )
+    return final
+
+
+# ── Streaming pipeline (Server-Sent Events) ───────────────────────────
+
+def _sse(event: str, payload: dict) -> str:
+    """Format one SSE frame: ``event: <name>\ndata: <json>\n\n``."""
+    return f"event: {event}\ndata: {json.dumps(payload)}\n\n"
+
+
+async def _run_pipeline_events(
+    query: str,
+    top_k: int | None,
+    filter_source: str | None,
+    enable_query_expansion: bool = False,
+    query_expansion_strategy: str = "llm",
+    query_expansion_max_terms: int = 5,
+    enable_reranking: bool = False,
+    reranker_top_k: int | None = None,
+) -> AsyncGenerator[str, None]:
+    """Run the 3-agent pipeline, yielding SSE frames as stages complete."""
+    pipeline_start = time.perf_counter()
+    try:
+        yield _sse("stage", {"stage": "retrieval", "status": "started"})
+        retrieval = await asyncio.to_thread(
+            _retriever.retrieve,
+            query,
+            top_k,
+            None,
+            filter_source,
+            enable_query_expansion,
+            query_expansion_strategy,
+            query_expansion_max_terms,
+            enable_reranking,
+            reranker_top_k,
+        )
+        yield _sse("stage", {
+            "stage": "retrieval", "status": "done",
+            "latency_ms": retrieval.latency_ms,
+            "chunks": len(retrieval.chunks),
+            "hybrid_used": retrieval.hybrid_used,
+            "below_threshold": retrieval.below_threshold,
+        })
+
+        if retrieval.below_threshold or not retrieval.chunks:
+            reason = (
+                "No relevant context found matching your query."
+                if not retrieval.chunks
+                else "The retrieved chunks did not meet the confidence threshold. "
+                     "Consider refining your query or uploading more relevant documents."
+            )
+            yield _sse("stage", {"stage": "draft", "status": "skipped"})
+            yield _sse("stage", {"stage": "verification", "status": "skipped"})
+            response = PipelineResponse(
+                query=query, retrieval=retrieval,
+                draft=DraftResult(answer=""),
+                verification=VerificationResult(
+                    verdicts=[], passed=True, verified_answer=reason),
+                pipeline_latency_ms=round(
+                    (time.perf_counter() - pipeline_start) * 1000, 1),
+                filter_source=filter_source, skipped_llm=True,
+            )
+            yield _sse("done", response.model_dump())
+            return
+
+        await asyncio.sleep(_settings.rate_limit_sleep)
+        yield _sse("stage", {"stage": "draft", "status": "started"})
+        draft = await asyncio.to_thread(
+            _drafter.draft, query=query, chunks=retrieval.chunks)
+        yield _sse("stage", {
+            "stage": "draft", "status": "done",
+            "latency_ms": draft.latency_ms, "chars": len(draft.answer)})
+
+        await asyncio.sleep(_settings.rate_limit_sleep)
+        yield _sse("stage", {"stage": "verification", "status": "started"})
+        verification = await asyncio.to_thread(
+            _verifier.verify, query=query,
+            draft_answer=draft.answer, chunks=retrieval.chunks)
+        yield _sse("stage", {
+            "stage": "verification", "status": "done",
+            "latency_ms": verification.latency_ms,
+            "claims": len(verification.verdicts),
+            "passed": verification.passed})
+
+        response = PipelineResponse(
+            query=query, retrieval=retrieval, draft=draft,
+            verification=verification,
+            pipeline_latency_ms=round(
+                (time.perf_counter() - pipeline_start) * 1000, 1),
+            filter_source=filter_source,
+        )
+        yield _sse("done", response.model_dump())
+
+    except Exception as exc:
+        logger.exception("[stream] Pipeline crashed")
+        yield _sse("error", {"error": str(exc)})
+
+
+@app.get("/pipeline/stream")
+async def run_pipeline_stream(
+    query: str = Query(..., min_length=1, description="User's question"),
+    top_k: int | None = Query(None, ge=1, le=20),
+    filter_source: str | None = Query(None),
+    enable_query_expansion: bool = Query(False, description="Expand the query with related terms before retrieval"),
+    query_expansion_strategy: str = Query("llm", description="Expansion strategy: llm | synonym | hybrid"),
+    query_expansion_max_terms: int = Query(5, ge=1, le=20, description="Maximum expansion terms"),
+    enable_reranking: bool = Query(False, description="Rerank retrieved chunks with a cross-encoder model"),
+    reranker_top_k: int | None = Query(None, ge=0, le=50, description="Top-K chunks to keep after reranking"),
+) -> StreamingResponse:
+    """Stream the RAG pipeline as Server-Sent Events (one event per stage)."""
+    if not (_retriever and _drafter and _verifier and _settings):
+        raise HTTPException(
+            status_code=503,
+            detail="Agents not initialised. Check that your LLM provider "
+                   "(Ollama local, or OpenAI/OpenRouter via the settings) "
+                   "and ChromaDB are accessible.",
+        )
+    return StreamingResponse(
+        _run_pipeline_events(
+            query, top_k, filter_source,
+            enable_query_expansion, query_expansion_strategy,
+            query_expansion_max_terms, enable_reranking, reranker_top_k,
+        ),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

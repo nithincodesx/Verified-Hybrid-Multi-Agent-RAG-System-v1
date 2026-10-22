@@ -118,6 +118,7 @@ class VerifierAgent:
             verdicts=verdicts,
             passed=passed,
             verified_answer=verified_answer,
+            latency_ms=round(latency, 1),
         )
 
     # ── private helpers ────────────────────────────────────────────────

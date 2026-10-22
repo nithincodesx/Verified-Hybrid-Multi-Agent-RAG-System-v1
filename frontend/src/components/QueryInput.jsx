@@ -7,11 +7,11 @@ const spring = { type: "spring", stiffness: 260, damping: 24, mass: 0.85 };
 const springBouncy = { type: "spring", stiffness: 400, damping: 14, mass: 0.5 };
 const springField = { type: "spring", stiffness: 350, damping: 26, mass: 0.7 };
 
-const NEON = "#1AE210";
-const NEON_GLOW = "rgba(26, 226, 16, 0.12)";
-const NEON_FAINT = "rgba(26, 226, 16, 0.08)";
+const NEON = "var(--accent)";
+const NEON_GLOW = "var(--accent-soft)";
+const NEON_FAINT = "var(--accent-soft-xs)";
 
-export default function QueryInput({ onSubmit, loading, filterSource, onFilterSourceChange }) {
+export default function QueryInput({ onSubmit, loading, filterSource, onFilterSourceChange, enableQueryExpansion, setEnableQueryExpansion, queryExpansionStrategy, setQueryExpansionStrategy, enableReranking, setEnableReranking }) {
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -21,7 +21,12 @@ export default function QueryInput({ onSubmit, loading, filterSource, onFilterSo
     e.preventDefault();
     const trimmed = query.trim();
     if (!trimmed || loading) return;
-    onSubmit(trimmed, { filterSource: filterSource || undefined });
+    onSubmit(trimmed, {
+      filterSource: filterSource || undefined,
+      enableQueryExpansion,
+      queryExpansionStrategy,
+      enableReranking,
+    });
   };
 
   const handleKeyDown = (e) => {
@@ -42,9 +47,9 @@ export default function QueryInput({ onSubmit, loading, filterSource, onFilterSo
         <motion.div
           animate={{
             boxShadow: focused
-              ? `0 0 48px ${NEON_FAINT}, 0 0 0 1.5px rgba(26,226,16,0.22)`
+              ? `0 0 48px ${NEON_FAINT}, 0 0 0 1.5px var(--accent-border-focus)`
               : hovered
-              ? `0 0 24px ${NEON_FAINT}, 0 0 0 1px rgba(26,226,16,0.08)`
+              ? `0 0 24px ${NEON_FAINT}, 0 0 0 1px var(--accent-ring-hover)`
               : "0 0 0 0 transparent",
             scale: focused ? 1.005 : 1,
           }}
@@ -84,7 +89,7 @@ export default function QueryInput({ onSubmit, loading, filterSource, onFilterSo
                 onChange={(e) => onFilterSourceChange(e.target.value)}
                 placeholder="Filter by source…"
                 disabled={loading}
-                className="bg-transparent text-[11px] text-muted placeholder:text-dim border border-glass rounded-lg px-2.5 py-1.5 outline-none focus:border-[rgba(26,226,16,0.25)] transition-all duration-300 w-[140px] font-mono"
+                className="bg-transparent text-[11px] text-muted placeholder:text-dim border border-glass rounded-lg px-2.5 py-1.5 outline-none focus:border-accent-border-focus transition-all duration-300 w-[140px] font-mono"
               />
               {filterSource && (
                 <motion.button
@@ -103,6 +108,46 @@ export default function QueryInput({ onSubmit, loading, filterSource, onFilterSo
               )}
             </motion.div>
 
+            {/* Expansion & reranking toggles */}
+            <motion.div
+              initial={false}
+              animate={focused ? { opacity: 1 } : { opacity: 0.5 }}
+              className="flex items-center gap-3 pt-1"
+            >
+              <label className="flex items-center gap-2 cursor-pointer text-xs text-muted hover:text-primary transition-colors">
+                <input
+                  type="checkbox"
+                  checked={enableQueryExpansion}
+                  onChange={(e) => setEnableQueryExpansion(e.target.checked)}
+                  disabled={loading}
+                  className="rounded border-glass bg-transparent text-accent accent-focus focus:ring-accent"
+                />
+                Expand query
+              </label>
+              {enableQueryExpansion && (
+                <select
+                  value={queryExpansionStrategy}
+                  onChange={(e) => setQueryExpansionStrategy(e.target.value)}
+                  disabled={loading || !enableQueryExpansion}
+                  className="text-xs text-primary bg-overlay-1 border border-glass rounded px-2 py-1 outline-none focus:border-accent-border-focus"
+                >
+                  <option value="llm">LLM</option>
+                  <option value="synonym">Synonym</option>
+                  <option value="hybrid">Hybrid</option>
+                </select>
+              )}
+              <label className="flex items-center gap-2 cursor-pointer text-xs text-muted hover:text-primary transition-colors">
+                <input
+                  type="checkbox"
+                  checked={enableReranking}
+                  onChange={(e) => setEnableReranking(e.target.checked)}
+                  disabled={loading}
+                  className="rounded border-glass bg-transparent text-accent accent-focus focus:ring-accent"
+                />
+                Rerank
+              </label>
+            </motion.div>
+
             {/* Submit button — green accent */}
             <motion.button
               type="submit"
@@ -115,8 +160,8 @@ export default function QueryInput({ onSubmit, loading, filterSource, onFilterSo
                 whitespace-nowrap relative overflow-hidden
                 ${
                   loading || !query.trim()
-                    ? "bg-[rgba(255,255,255,0.03)] text-muted cursor-not-allowed"
-                    : "glass-glow border border-[rgba(26,226,16,0.12)]"
+                    ? "bg-overlay-1 text-muted cursor-not-allowed"
+                    : "glass-glow border border-accent-border"
                 }
               `}
               style={

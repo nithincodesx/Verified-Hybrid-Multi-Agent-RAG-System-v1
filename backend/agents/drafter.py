@@ -68,7 +68,7 @@ class DraftAgent:
 
         latency = (time.perf_counter() - start) * 1000
         logger.info("Draft generated in %.0f ms", latency)
-        return DraftResult(answer=answer)
+        return DraftResult(answer=answer, latency_ms=round(latency, 1))
 
     # ── private helpers ────────────────────────────────────────────────
 

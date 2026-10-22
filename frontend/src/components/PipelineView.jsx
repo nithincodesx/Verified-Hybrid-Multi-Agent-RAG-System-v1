@@ -22,7 +22,7 @@ const badgeVariant = {
 
 const tabVariants = {
   inactive: { background: "transparent", color: "var(--text-muted)" },
-  active: { background: "rgba(26,226,16,0.1)", color: "#1AE210" },
+  active: { background: "rgba(59,130,246,0.1)", color: "#3b82f6" },
 };
 
 export default function PipelineView({ result }) {
@@ -33,11 +33,16 @@ export default function PipelineView({ result }) {
   const hasVerdicts = verification?.verdicts?.length > 0;
   const isHybrid = retrieval?.hybrid_used;
   const isBelowThreshold = retrieval?.below_threshold;
+  const expansionApplied = retrieval?.expansion_applied;
+  const rerankingApplied = retrieval?.reranking_applied;
+  const rerankerFallback = retrieval?.reranker_fallback_used;
 
   const badges = [];
   if (isHybrid) badges.push({ label: "Hybrid Search", color: "#60a5fa", icon: "polyline" });
+  if (expansionApplied) badges.push({ label: "Query Expanded", color: "#3b82f6", icon: "polyline" });
+  if (rerankingApplied) badges.push({ label: rerankerFallback ? "Rerank (fallback)" : "Reranked", color: rerankerFallback ? "#fbbf24" : "#60a5fa", icon: "polyline" });
   if (skipped_llm) badges.push({ label: "LLM Bypassed (low confidence)", color: "#fbbf24", icon: "clock" });
-  if (filter_source) badges.push({ label: `Filter: ${filter_source}`, color: "#1AE210", icon: "filter" });
+  if (filter_source) badges.push({ label: `Filter: ${filter_source}`, color: "#3b82f6", icon: "filter" });
 
   return (
     <AnimatePresence mode="wait">

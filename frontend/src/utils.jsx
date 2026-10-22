@@ -23,14 +23,14 @@ export function renderWithCitations(text) {
             const el = document.getElementById(`chunk-${num}`);
             el?.scrollIntoView({ behavior: "smooth", block: "center" });
             el?.classList.add(
-              "ring-1", "ring-[rgba(26,226,16,0.4)]",
-              "bg-[rgba(26,226,16,0.04)]",
+              "ring-1", "ring-accent-ring",
+              "bg-accent-soft-xs",
               "transition-all", "duration-700"
             );
             setTimeout(() => {
               el?.classList.remove(
-                "ring-1", "ring-[rgba(26,226,16,0.4)]",
-                "bg-[rgba(26,226,16,0.04)]"
+                "ring-1", "ring-accent-ring",
+                "bg-accent-soft-xs"
               );
             }, 1500);
           }}
@@ -39,10 +39,10 @@ export function renderWithCitations(text) {
           transition={springBouncy}
           className="inline-flex items-center gap-0.5 px-1.5 py-0.5 mx-0.5
             rounded-md text-[11px] font-mono font-semibold
-            bg-[rgba(26,226,16,0.08)] text-[#1AE210]
-            hover:bg-[rgba(26,226,16,0.15)]
+            bg-accent-soft text-accent
+            hover:bg-accent-soft-lg
             active:scale-95 cursor-pointer align-baseline
-            border border-[rgba(26,226,16,0.1)]
+            border border-accent-border-soft
             shadow-sm"
           title={`Scroll to source chunk ${num}`}
         >

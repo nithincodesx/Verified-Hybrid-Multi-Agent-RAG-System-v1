@@ -25,15 +25,13 @@ export default function ThemeToggle({ theme, onToggle }) {
       {/* Track */}
       <motion.div
         animate={{
-          background: isDark
-            ? "linear-gradient(135deg, rgba(26,226,16,0.12), rgba(26,226,16,0.08))"
-            : "linear-gradient(135deg, rgba(251,191,36,0.18), rgba(245,158,11,0.1))",
+          background: isDark ? "var(--track-accent)" : "var(--track-light)",
         }}
         transition={{ duration: 0.4, ease: "easeOut" }}
         className="relative w-[44px] h-[22px] rounded-full overflow-hidden"
         style={{
           border: "1px solid var(--border-glass-strong)",
-          boxShadow: "inset 0 1px 3px rgba(0,0,0,0.15)",
+          boxShadow: "inset 0 1px 3px var(--control-inset-shadow)",
         }}
       >
         {/* Sliding thumb */}
@@ -42,7 +40,7 @@ export default function ThemeToggle({ theme, onToggle }) {
           transition={springThumb}
           className="absolute top-[2px] w-[16px] h-[16px] rounded-full shadow-lg flex items-center justify-center"
           style={{
-            background: "linear-gradient(135deg, #ffffff, #f0f2f8)",
+            background: "linear-gradient(135deg, var(--control-thumb), var(--control-thumb-hi))",
             left: isDark ? "2px" : "24px",
           }}
         >
@@ -54,7 +52,7 @@ export default function ThemeToggle({ theme, onToggle }) {
                 animate={{ rotate: 0, opacity: 1 }}
                 exit={{ rotate: 90, opacity: 0 }}
                 transition={springRotate}
-                width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--icon-moon)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
               >
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
               </motion.svg>
@@ -65,7 +63,7 @@ export default function ThemeToggle({ theme, onToggle }) {
                 animate={{ rotate: 0, opacity: 1 }}
                 exit={{ rotate: -90, opacity: 0 }}
                 transition={springRotate}
-                width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--icon-sun)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
               >
                 <circle cx="12" cy="12" r="5" />
                 <line x1="12" y1="1" x2="12" y2="3" />

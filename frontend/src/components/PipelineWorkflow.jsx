@@ -6,8 +6,8 @@ const spring = { type: "spring", stiffness: 220, damping: 24, mass: 0.85 };
 const springReveal = { type: "spring", stiffness: 200, damping: 22, mass: 0.9 };
 const springBouncy = { type: "spring", stiffness: 400, damping: 14, mass: 0.6 };
 
-const NEON = "#1AE210";
-const NEON_FAINT = "rgba(26, 226, 16, 0.08)";
+const NEON = "#3b82f6";
+const NEON_FAINT = "rgba(59, 130, 246, 0.08)";
 
 /* ── Advanced pipeline stages ──────────────────────────────────── */
 const STAGES = [
@@ -371,7 +371,7 @@ function Pill({ label, color, small = false, glow = false }) {
 function Arrow() {
   return (
     <div className="w-px h-4 flex items-center justify-center">
-      <div className="w-px h-full" style={{ background: `linear-gradient(to bottom, rgba(26,226,16,0.2), transparent)` }} />
+      <div className="w-px h-full" style={{ background: `linear-gradient(to bottom, rgba(59,130,246,0.2), transparent)` }} />
     </div>
   );
 }

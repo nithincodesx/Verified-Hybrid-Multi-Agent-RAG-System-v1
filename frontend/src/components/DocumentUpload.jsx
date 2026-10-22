@@ -134,10 +134,10 @@ export default function DocumentUpload({ onUploaded }) {
         animate={{
           scale: dragging ? 1.005 : 1,
           borderColor: dragging
-            ? "rgba(26,226,16,0.35)"
+            ? "var(--accent-border-active)"
             : "var(--border-glass)",
           background: dragging
-            ? "rgba(26,226,16,0.03)"
+            ? "var(--glow-ambient)"
             : "var(--bg-card)",
         }}
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
@@ -163,8 +163,8 @@ export default function DocumentUpload({ onUploaded }) {
               transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
               className="relative w-8 h-8"
             >
-              <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#1AE210] border-r-[rgba(26,226,16,0.25)]" />
-              <div className="absolute inset-[2px] rounded-full border-2 border-transparent border-b-[rgba(26,226,16,0.15)] border-l-[rgba(26,226,16,0.1)]" />
+              <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-accent border-r-[var(--accent-border-focus)]" />
+              <div className="absolute inset-[2px] rounded-full border-2 border-transparent border-b-accent-glow border-l-accent-soft" />
             </motion.div>
             <motion.div
               initial={{ opacity: 0 }}
@@ -191,7 +191,7 @@ export default function DocumentUpload({ onUploaded }) {
               <line x1="12" y1="3" x2="12" y2="15" />
             </motion.svg>
             <span className="text-[13px] text-muted font-mono">
-              <span className="text-[#1AE210] underline underline-offset-2 decoration-dashed decoration-[rgba(26,226,16,0.3)]">
+              <span className="text-accent underline underline-offset-2 decoration-dashed decoration-[var(--accent-strong)]">
                 Click to upload
               </span>{" "}or drag and drop
             </span>
@@ -214,7 +214,7 @@ export default function DocumentUpload({ onUploaded }) {
               initial={{ y: -8 }}
               animate={{ y: 0 }}
               className={`mt-2 glass-light rounded-xl px-4 py-3 flex items-center gap-3 ${
-                result.success ? "border border-[rgba(52,211,153,0.06)]" : "border border-[rgba(251,113,133,0.06)]"
+                result.success ? "border border-[var(--success-border-faint)]" : "border border-[var(--danger-border-faint)]"
               }`}
             >
               <motion.div
@@ -223,11 +223,11 @@ export default function DocumentUpload({ onUploaded }) {
                 transition={springBouncy}
               >
                 {result.success ? (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 ) : (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fb7185" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" />
                     <line x1="12" y1="8" x2="12" y2="12" />
                     <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -235,7 +235,7 @@ export default function DocumentUpload({ onUploaded }) {
                 )}
               </motion.div>
               <div className="flex-1 min-w-0">
-                <p className={`text-[13px] font-mono font-medium ${result.success ? "text-[#34d399]" : "text-[#fb7185]"}`}>
+                <p className={`text-[13px] font-mono font-medium ${result.success ? "text-success" : "text-danger"}`}>
                   {result.success
                     ? `${result.filename} — ${result.chunks} chunk${result.chunks !== 1 ? "s" : ""} ingested`
                     : "Upload failed"}

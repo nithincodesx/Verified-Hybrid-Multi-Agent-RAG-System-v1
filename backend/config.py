@@ -22,6 +22,23 @@ from typing import Any, Dict, List, Optional
 # ── Provider selection ─────────────────────────────────────────────────
 LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "")
 
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    """Parse a boolean environment variable.
+
+    Accepts the usual truthy spellings ("1", "true", "yes", "on") and treats
+    anything else as False. Unset / unrecognised values fall back to ``default``.
+    """
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    value = raw.strip().lower()
+    if value in ("1", "true", "yes", "on", "y", "t"):
+        return True
+    if value in ("0", "false", "no", "off", "n", "f"):
+        return False
+    return default
+
 # ── Ollama (local, free, offline) ──────────────────────────────────────
 OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
@@ -63,6 +80,24 @@ BM25_B: float = 0.75                # BM25 length normalisation
 # based splitting (more coherent chunks).
 ENABLE_SEMANTIC_CHUNKING: bool = False  # default False — needs more Ollama calls
 SEMANTIC_CHUNK_THRESHOLD: float = 0.15 # cosine-distance shift that triggers a split
+
+# ── Query Expansion ─────────────────────────────────────────────────────
+# When True, the query is expanded with related terms (via the LLM and/or
+# WordNet synonyms) BEFORE retrieval, to improve recall. Disabled by default
+# so the existing retrieval behaviour is preserved exactly.
+ENABLE_QUERY_EXPANSION: bool = _env_bool("ENABLE_QUERY_EXPANSION", False)
+QUERY_EXPANSION_STRATEGY: str = os.getenv("QUERY_EXPANSION_STRATEGY", "llm")  # llm | synonym | hybrid
+QUERY_EXPANSION_MAX_TERMS: int = int(os.getenv("QUERY_EXPANSION_MAX_TERMS", "5"))
+
+# ── Cross-Encoder Reranking ─────────────────────────────────────────────
+# When True, retrieved chunks are re-scored with a cross-encoder model AFTER
+# retrieval, to improve precision. Disabled by default. If the model (or
+# sentence-transformers) is unavailable, a deterministic keyword-overlap
+# fallback is used instead.
+ENABLE_RERANKING: bool = _env_bool("ENABLE_RERANKING", False)
+RERANKER_MODEL: str = os.getenv("RERANKER_MODEL", "BAAI/bge-reranker-base")
+RERANKER_TOP_K: int = int(os.getenv("RERANKER_TOP_K", "5"))  # 0 = keep every retrieved chunk
+RERANKER_FALLBACK: bool = _env_bool("RERANKER_FALLBACK", True)
 
 # ── Confidence / Distance Threshold ────────────────────────────────────
 # If the top retrieved chunk's similarity score falls below this value,
@@ -142,6 +177,17 @@ class Settings:
     bm25_b: float = BM25_B
     enable_semantic_chunking: bool = ENABLE_SEMANTIC_CHUNKING
     semantic_chunk_threshold: float = SEMANTIC_CHUNK_THRESHOLD
+
+    # ── Query expansion (optional, off by default) ──
+    enable_query_expansion: bool = ENABLE_QUERY_EXPANSION
+    query_expansion_strategy: str = QUERY_EXPANSION_STRATEGY
+    query_expansion_max_terms: int = QUERY_EXPANSION_MAX_TERMS
+
+    # ── Cross-encoder reranking (optional, off by default) ──
+    enable_reranking: bool = ENABLE_RERANKING
+    reranker_model: str = RERANKER_MODEL
+    reranker_top_k: int = RERANKER_TOP_K
+    reranker_fallback: bool = RERANKER_FALLBACK
     confidence_threshold: float = CONFIDENCE_THRESHOLD
     rate_limit_sleep: float = RATE_LIMIT_SLEEP
     max_retries: int = MAX_RETRIES

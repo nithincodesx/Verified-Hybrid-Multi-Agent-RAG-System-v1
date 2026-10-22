@@ -44,15 +44,15 @@ export default function VerificationCard({ verification, index }) {
             whileHover={{ rotate: [0, -12, 12, 0] }}
             transition={{ duration: 0.4 }}
             className={`w-7 h-7 rounded-lg flex items-center justify-center ${
-              passed ? "bg-[rgba(52,211,153,0.08)]" : "bg-[rgba(251,113,133,0.08)]"
+              passed ? "bg-success-soft" : "bg-danger-soft"
             }`}
           >
             {passed ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fb7185" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -90,8 +90,8 @@ export default function VerificationCard({ verification, index }) {
             whileHover={{ x: 2, transition: { type: "spring", stiffness: 200, damping: 20 } }}
             className={`relative overflow-hidden rounded-xl p-3.5 border ${
               v.supported
-                ? "border-[rgba(52,211,153,0.05)] bg-[rgba(52,211,153,0.015)]"
-                : "border-[rgba(251,113,133,0.06)] bg-[rgba(251,113,133,0.02)]"
+                ? "border-[var(--success-border-faint)] bg-success-faintest"
+                : "border-[var(--danger-border-faint)] bg-danger-faintest"
             }`}
           >
             <GlowingEffect spread={24} proximity={40} inactiveZone={0.02} borderWidth={0.75} />
@@ -102,8 +102,8 @@ export default function VerificationCard({ verification, index }) {
                 transition={{ ...springBouncy, delay: i * 0.015 }}
                 className={`mt-0.5 shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${
                   v.supported
-                    ? "bg-[rgba(52,211,153,0.1)] text-[#34d399]"
-                    : "bg-[rgba(251,113,133,0.1)] text-[#fb7185]"
+                    ? "bg-success-soft text-success"
+                    : "bg-danger-soft text-danger"
                 }`}
               >
                 {v.supported ? "✓" : "✗"}
@@ -112,7 +112,7 @@ export default function VerificationCard({ verification, index }) {
                 <p className="text-[13px] leading-relaxed text-secondary mb-1 font-sans">{v.claim}</p>
                 {v.source_chunk && (
                   <details className="mt-1.5 group">
-                    <summary className="text-[11px] text-muted cursor-pointer hover:text-[#8a8ea0] transition-colors font-mono list-none flex items-center gap-1.5">                    <svg
+                    <summary className="text-[11px] text-muted cursor-pointer hover:text-hover transition-colors font-mono list-none flex items-center gap-1.5">                    <svg
                         className="w-3 h-3 text-dim transition-transform duration-300 group-open:rotate-90"
                       viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                       >
@@ -145,18 +145,18 @@ export default function VerificationCard({ verification, index }) {
           initial={{ opacity: 0, y: 16, filter: "blur(6px)" }}
           animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
           transition={{ ...spring, delay: 0.35 }}
-          className="glass-light relative overflow-hidden rounded-xl p-4 border border-[rgba(26,226,16,0.06)]"
+          className="glass-light relative overflow-hidden rounded-xl p-4 border border-[var(--accent-soft-xs)]"
         >
           <GlowingEffect spread={30} glow proximity={52} inactiveZone={0.02} borderWidth={0.75} />
           <div className="flex items-center gap-2 mb-2.5">
             <motion.svg
               animate={{ scale: [1, 1.12, 1] }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1AE210" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
             >
               <polyline points="20 6 9 17 4 12" />
             </motion.svg>
-            <span className="text-[11px] font-semibold text-[#1AE210] uppercase tracking-wider font-mono">
+            <span className="text-[11px] font-semibold text-accent uppercase tracking-wider font-mono">
               Verified Answer
             </span>
           </div>

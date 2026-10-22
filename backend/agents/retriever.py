@@ -24,6 +24,8 @@ from backend.config import Settings
 from backend.models.schemas import RetrievalResult, SourceChunk
 from backend.services.bm25_retriever import BM25Retriever, reciprocal_rank_fusion
 from backend.services.llm_client import embed_text as llm_embed_text
+from backend.services.query_expander import QueryExpander
+from backend.services.reranker import CrossEncoderReranker
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +46,23 @@ class RetrieverAgent:
         self._bm25_built = False
         self._bm25_cache_key: Optional[tuple] = None
 
+        # Query expander and cross-encoder reranker — lazily initialised
+        self._expander: Optional[QueryExpander] = None
+        self._reranker: Optional[CrossEncoderReranker] = None
+
+    def _get_expander(self) -> Optional[QueryExpander]:
+        if self._expander is None:
+            self._expander = QueryExpander(self.settings)
+        return self._expander
+
+    def _get_reranker(self) -> Optional[CrossEncoderReranker]:
+        if self._reranker is None:
+            self._reranker = CrossEncoderReranker(
+                model_name=self.settings.reranker_model,
+                use_fallback=self.settings.reranker_fallback,
+            )
+        return self._reranker
+
     # ── public API ─────────────────────────────────────────────────────
 
     def retrieve(
@@ -52,23 +71,61 @@ class RetrieverAgent:
         top_k: Optional[int] = None,
         collection_name: Optional[str] = None,
         filter_source: Optional[str] = None,
+        enable_query_expansion: bool = False,
+        query_expansion_strategy: str = "llm",
+        query_expansion_max_terms: int = 5,
+        enable_reranking: bool = False,
+        reranker_top_k: Optional[int] = None,
     ) -> RetrievalResult:
         """
         Retrieve chunks using hybrid search (vector + BM25 with RRF).
+
+        Optionally expands the query before retrieval and reranks retrieved
+        chunks afterwards.
 
         Args:
             query: The user's search question.
             top_k: How many chunks to return (default from config).
             collection_name: ChromaDB collection name (default from config).
             filter_source: Optional document filename to restrict search to.
+            enable_query_expansion: Apply query expansion before retrieval.
+            query_expansion_strategy: Expansion strategy ("llm", "synonym", "hybrid").
+            query_expansion_max_terms: Maximum expansion terms to generate.
+            enable_reranking: Apply cross-encoder reranking after retrieval.
+            reranker_top_k: Top-K chunks to keep after reranking (None = all).
 
         Returns:
             A ``RetrievalResult`` containing fused chunks, scores, and metadata.
         """
         start = time.perf_counter()
 
+        expanded_query = query
+        expansion_applied = False
+        expansion_strategy_used: Optional[str] = None
+        expansion_terms: List[str] = []
+
+        # ── Step 0: Query expansion (before retrieval) ─────────────────
+        if enable_query_expansion:
+            try:
+                expander = self._get_expander()
+                if expander is not None:
+                    expanded_query = expander.expand(
+                        query,
+                        max_expansions=query_expansion_max_terms,
+                        strategy=query_expansion_strategy,
+                    )
+                    expansion_terms = list(expander.last_expansion_terms)
+                    expansion_applied = expanded_query != query
+                    expansion_strategy_used = query_expansion_strategy
+                    logger.info(
+                        "Query expansion: '%s' -> '%s'", query[:50], expanded_query[:80]
+                    )
+            except Exception:
+                logger.exception("Query expansion failed; proceeding with original query")
+
         try:
-            query_vector = self._embed(query)
+            # Embed the (possibly expanded) query
+            query_vector = self._embed(expanded_query)
             k = top_k or self.settings.top_k
             collection = collection_name or self.settings.collection_name
 
@@ -121,12 +178,45 @@ class RetrieverAgent:
             raise
 
         latency = (time.perf_counter() - start) * 1000  # ms
+
+        # ── Step 4: Cross-encoder reranking (after retrieval) ──────────
+        reranking_applied = False
+        reranker_model_used: Optional[str] = None
+        reranker_fallback_used = False
+        reranker_error: Optional[str] = None
+        if enable_reranking:
+            try:
+                reranker = self._get_reranker()
+                if reranker is not None:
+                    model_available = reranker.is_available
+                    reranker_model_used = reranker.name
+                    # Detect fallback: model unavailable but fallback enabled
+                    if not model_available and self.settings.reranker_fallback:
+                        reranker_fallback_used = True
+                    vector_chunks = reranker.rerank(
+                        query,
+                        vector_chunks,
+                        top_k=None if (reranker_top_k is None or reranker_top_k == 0) else reranker_top_k,
+                    )
+                    reranking_applied = True
+            except Exception as exc:
+                logger.exception("Reranking failed; proceeding without reranking")
+                reranker_error = str(exc)
+
         return RetrievalResult(
             query=query,
+            expanded_query=expanded_query if expansion_applied else None,
+            expansion_applied=expansion_applied,
+            expansion_strategy=expansion_strategy_used,
+            expansion_terms=expansion_terms,
             chunks=vector_chunks,
             latency_ms=round(latency, 1),
             hybrid_used=hybrid_used,
             below_threshold=below_threshold,
+            reranking_applied=reranking_applied,
+            reranker_model=reranker_model_used,
+            reranker_fallback_used=reranker_fallback_used,
+            reranker_error=reranker_error,
         )
 
     def health_check(self) -> bool:

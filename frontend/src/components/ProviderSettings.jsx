@@ -117,9 +117,9 @@ function Field({ label, value, onChange, placeholder, secret, hint }) {
 
 function Note({ children }) {
   return (
-    <div className="relative overflow-hidden flex items-start gap-2 rounded-xl bg-[rgba(26,226,16,0.04)] border border-[var(--border-accent)] px-3 py-2.5">
+    <div className="relative overflow-hidden flex items-start gap-2 rounded-xl bg-[rgba(59,130,246,0.04)] border border-[var(--border-accent)] px-3 py-2.5">
       <GlowingEffect spread={24} proximity={40} inactiveZone={0.03} borderWidth={0.75} />
-      <svg className="mt-0.5 shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1AE210" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <svg className="mt-0.5 shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10" />
         <line x1="12" y1="8" x2="12" y2="12" />
         <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -254,9 +254,9 @@ export default function ProviderSettings({ onClose, onSaved }) {
               initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={springBouncy}
-              className="w-9 h-9 rounded-xl bg-[rgba(26,226,16,0.08)] flex items-center justify-center mb-2.5"
+              className="w-9 h-9 rounded-xl bg-[rgba(59,130,246,0.08)] flex items-center justify-center mb-2.5"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1AE210" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="3" />
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
               </svg>
@@ -294,8 +294,8 @@ export default function ProviderSettings({ onClose, onSaved }) {
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.97 }}
                 animate={{
-                  borderColor: isActive ? "rgba(26,226,16,0.35)" : "var(--border-glass)",
-                  background: isActive ? "rgba(26,226,16,0.06)" : "var(--bg-card)",
+                  borderColor: isActive ? "rgba(59,130,246,0.35)" : "var(--border-glass)",
+                  background: isActive ? "rgba(59,130,246,0.06)" : "var(--bg-card)",
                 }}
                 transition={{ type: "spring", stiffness: 300, damping: 24 }}
                 className="relative overflow-hidden rounded-xl px-3 py-3.5 text-left border"
@@ -427,7 +427,7 @@ export default function ProviderSettings({ onClose, onSaved }) {
                 </div>
                 <Note>
                   Fully local, free, and private. Pull models first with{" "}
-                  <code className="text-[#1AE210]">ollama pull llama3.2:1b</code>.
+                  <code className="text-[#60a5fa]">ollama pull llama3.2:1b</code>.
                 </Note>
               </>
             )}
@@ -474,7 +474,7 @@ export default function ProviderSettings({ onClose, onSaved }) {
                 className={`rounded-xl px-4 py-2.5 text-[12px] font-medium mono-metric flex items-center gap-2 border disabled:opacity-50 ${
                   saved
                     ? "badge-pass"
-                    : "glass-glow text-[#1AE210] border-[rgba(26,226,16,0.12)]"
+                    : "glass-glow text-[#60a5fa] border-[rgba(59,130,246,0.12)]"
                 }`}
               >
                 {saving ? (

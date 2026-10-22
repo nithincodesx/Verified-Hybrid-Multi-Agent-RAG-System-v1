@@ -142,9 +142,9 @@ const GlowingEffect = memo(function GlowingEffect({
   }, [disabled, proximity]);
 
   const isActive = active && prox >= inactiveZone;
-  const pathLength = isActive ? 1 : 0.25;
-  const opacity = isActive ? 1 : 0.3;
-  const glowBlur = Math.max(blur, glow ? 8 : 0);
+  const pathLength = isActive ? 1 : 0.18;
+  const opacity = isActive ? 0.55 : 0.12;
+  const glowBlur = Math.max(blur, glow ? 6 : 0);
 
   return (
     <div
@@ -160,10 +160,9 @@ const GlowingEffect = memo(function GlowingEffect({
         data-glow-layer
         className="pointer-events-none absolute inset-0"
         style={{
-          background: `radial-gradient(${spread}px circle at var(--gx, 50%) var(--gy, 50%), color-mix(in srgb, var(--glow-color, #1AE210) 18%, transparent) 0%, transparent 70%)`,
-          opacity: "calc(var(--prox, 0) * 0.5)",
+          background: `radial-gradient(${spread}px circle at var(--gx, 50%) var(--gy, 50%), color-mix(in srgb, var(--glow-color, var(--accent)) 10%, transparent) 0%, transparent 70%)`,
+          opacity: "calc(var(--prox, 0) * 0.35)",
           filter: `blur(${blur}px)`,
-          mixBlendMode: "screen",
         }}
       />
 
@@ -189,11 +188,11 @@ const GlowingEffect = memo(function GlowingEffect({
             strokeLinecap="round"
             strokeLinejoin="round"
             style={{
-              color: "var(--glow-color, #1AE210)",
+              color: "var(--glow-color, var(--accent))",
               filter: `blur(${glowBlur}px)`,
             }}
             initial={false}
-            animate={{ pathLength, opacity: opacity * 0.55 }}
+            animate={{ pathLength, opacity: opacity * 0.3 }}
             transition={{ duration: movementDuration, ease: EASE }}
           />
         )}
@@ -204,7 +203,7 @@ const GlowingEffect = memo(function GlowingEffect({
           strokeWidth={borderWidth}
           strokeLinecap="round"
           strokeLinejoin="round"
-          style={{ color: "var(--glow-color, #1AE210)" }}
+          style={{ color: "var(--glow-color, var(--accent))" }}
           initial={false}
           animate={{ pathLength, opacity }}
           transition={{ duration: movementDuration, ease: EASE }}

@@ -134,7 +134,7 @@ export default function DocumentDashboard({ refreshKey }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={spring}
-            className="mono-metric text-[#fb7185] mb-2 px-1"
+            className="mono-metric text-danger mb-2 px-1"
           >
             {deleteError}
           </motion.p>
@@ -181,7 +181,7 @@ export default function DocumentDashboard({ refreshKey }) {
                   whileTap={{ scale: 0.92 }}
                   transition={springSnappy}
                   className="shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-mono font-medium
-                    text-muted hover:text-[#fb7185] hover:bg-[rgba(251,113,133,0.04)]
+                    text-muted hover:text-danger hover:bg-danger-faint
                     transition-all duration-150
                     opacity-50 group-hover:opacity-100 focus-visible:opacity-100
                     disabled:opacity-30 disabled:cursor-not-allowed"
