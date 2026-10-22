@@ -313,6 +313,42 @@ async def delete_document(filename: str) -> DeleteResponse:
         )
 
 
+@app.get("/documents/{filename}/details")
+async def get_document_details(filename: str):
+    """Get chunks and metadata for a specific document."""
+    if not _settings:
+        raise HTTPException(status_code=503, detail="Backend not initialised.")
+    try:
+        collection = _get_chroma_collection()
+        result = collection.get(
+            where={"source": filename},
+            include=["documents", "metadatas"],
+        )
+        docs = result.get("documents", []) or []
+        metas = result.get("metadatas", []) or []
+        ids = result.get("ids", []) or []
+
+        chunks = []
+        for i, text in enumerate(docs):
+            meta = metas[i] if i < len(metas) else {}
+            chunks.append({
+                "id": ids[i] if i < len(ids) else str(i),
+                "text": text,
+                "metadata": meta,
+                "chunk_index": meta.get("chunk_index", i) if meta else i,
+            })
+
+        chunks.sort(key=lambda c: c["chunk_index"])
+        return {
+            "filename": filename,
+            "chunk_count": len(chunks),
+            "chunks": chunks,
+        }
+    except Exception as exc:
+        logger.exception("Failed to fetch details for '%s'", filename)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 # ── Provider settings endpoints ───────────────────────────────────────
 
 
@@ -369,6 +405,16 @@ def _apply_settings_updates(body: ProviderSettingsRequest) -> None:
         s.draft_model = body.draft_model.strip()
     if body.verifier_model.strip():
         s.verifier_model = body.verifier_model.strip()
+    if body.enable_query_expansion is not None:
+        s.enable_query_expansion = body.enable_query_expansion
+    if body.query_expansion_strategy:
+        s.query_expansion_strategy = body.query_expansion_strategy.strip()
+    if body.query_expansion_max_terms is not None:
+        s.query_expansion_max_terms = body.query_expansion_max_terms
+    if body.enable_reranking is not None:
+        s.enable_reranking = body.enable_reranking
+    if body.reranker_model and body.reranker_model.strip():
+        s.reranker_model = body.reranker_model.strip()
 
 
 @app.get("/settings", response_model=ProviderSettingsResponse)

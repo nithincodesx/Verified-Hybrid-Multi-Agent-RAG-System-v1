@@ -151,6 +151,11 @@ class ProviderSettingsRequest(BaseModel):
     embedding_model: str = ""
     draft_model: str = ""
     verifier_model: str = ""
+    enable_query_expansion: Optional[bool] = None
+    query_expansion_strategy: Optional[str] = None
+    query_expansion_max_terms: Optional[int] = None
+    enable_reranking: Optional[bool] = None
+    reranker_model: Optional[str] = None
 
 
 class ProviderSettingsResponse(BaseModel):
