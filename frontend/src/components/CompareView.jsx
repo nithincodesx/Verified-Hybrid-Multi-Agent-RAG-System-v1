@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { renderWithCitations } from "../utils";
 import GlowingEffect from "./GlowingEffect";
+import AIDiff from "./smoothui/ai-diff";
 
 /* ── Spring presets ─────────────────────────────────────────────── */
 const spring = { type: "spring", stiffness: 240, damping: 24, mass: 0.85 };
@@ -8,11 +9,14 @@ const springBouncy = { type: "spring", stiffness: 420, damping: 12, mass: 0.5 };
 const springReveal = { type: "spring", stiffness: 200, damping: 22, mass: 0.8 };
 
 function highlightFlaggedClaims(draftText, unsupportedClaims) {
-  if (!unsupportedClaims.length || !draftText) {
+  const validClaims = (unsupportedClaims || []).filter(
+    (c) => typeof c === "string" && c.trim().length > 0
+  );
+  if (!validClaims.length || !draftText) {
     return <span>{draftText}</span>;
   }
 
-  const escaped = unsupportedClaims.map((c) =>
+  const escaped = validClaims.map((c) =>
     c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
   );
   const pattern = new RegExp(`(${escaped.join("|")})`, "gi");
@@ -37,16 +41,14 @@ function highlightFlaggedClaims(draftText, unsupportedClaims) {
   });
 }
 
-export default function CompareView({ result }) {
-  if (!result) return null;
-  const { draft, verification } = result;
-  const draftAnswer = draft?.answer || "";
-  const verifiedAnswer = verification?.verified_answer || "";
-  const unsupportedClaims = (verification?.verdicts || [])
-    .filter((v) => !v.supported)
-    .map((v) => v.claim);
-  const supportedClaims = (verification?.verdicts || [])
-    .filter((v) => v.supported);
+export default function CompareView({ draftAnswer = "", verifiedAnswer = "", verdicts = [] }) {
+  if (!draftAnswer && !verifiedAnswer) return null;
+  const unsupportedClaims = verdicts
+    .filter((v) => v.verdict === "UNSUPPORTED" || v.verdict === "unsupported" || (!v.supported && !v.passed))
+    .map((v) => v.claim || v.claim_text)
+    .filter(Boolean);
+  const supportedClaims = verdicts
+    .filter((v) => v.verdict === "SUPPORTED" || v.verdict === "supported" || v.supported || v.passed);
   const hasComparison = draftAnswer && verifiedAnswer;
 
   return (
@@ -72,16 +74,16 @@ export default function CompareView({ result }) {
           <span className="text-[11px] font-semibold text-muted uppercase tracking-wider font-mono">
             A/B Comparison
           </span>
-          {verification && (
+          {verdicts.length > 0 && (
             <motion.span
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
               transition={springBouncy}
               className={`mono-metric font-semibold px-2 py-0.5 rounded-md uppercase tracking-wider ${
-                verification.passed ? "badge-pass" : "badge-fail"
+                unsupportedClaims.length === 0 ? "badge-pass" : "badge-fail"
               }`}
             >
-              {verification.passed
+              {unsupportedClaims.length === 0
                 ? "ALL CLAIMS VERIFIED"
                 : `${unsupportedClaims.length} FLAGGED`}
             </motion.span>
@@ -101,7 +103,13 @@ export default function CompareView({ result }) {
           </p>
         </motion.div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-4">
+          <AIDiff
+            draftText={draftAnswer}
+            verifiedText={verifiedAnswer}
+            verdicts={verdicts}
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* LEFT: Raw Draft */}
           <motion.div
             initial={{ opacity: 0, x: -24, filter: "blur(8px)" }}
@@ -195,10 +203,11 @@ export default function CompareView({ result }) {
             </motion.div>
           </motion.div>
         </div>
+      </div>
       )}
 
       {/* Verdict summary */}
-      {verification?.verdicts?.length > 0 && (
+      {verdicts.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 16, filter: "blur(6px)" }}
           animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
@@ -210,44 +219,47 @@ export default function CompareView({ result }) {
             Per-Claim Verdicts
           </span>
           <div className="space-y-1.5">
-            {verification.verdicts.map((v, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: -8, filter: "blur(3px)" }}
-                animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-                transition={{ ...springReveal, delay: i * 0.03 }}
-                className={`flex items-start gap-2.5 rounded-lg px-3 py-2 ${
-                  v.supported
-                    ? "bg-success-faintest"
-                    : "bg-danger-faintest"
-                }`}
-              >
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ ...springBouncy, delay: i * 0.03 }}
-                  className={`mt-0.5 shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
-                    v.supported
-                      ? "bg-success-soft text-success"
-                      : "bg-danger-soft text-danger"
+            {verdicts.map((v, i) => {
+              const supported = v.supported ?? (v.verdict === "SUPPORTED" || v.passed);
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -8, filter: "blur(3px)" }}
+                  animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+                  transition={{ ...springReveal, delay: i * 0.03 }}
+                  className={`flex items-start gap-2.5 rounded-lg px-3 py-2 ${
+                    supported
+                      ? "bg-success-faintest"
+                      : "bg-danger-faintest"
                   }`}
                 >
-                  {v.supported ? "✓" : "✗"}
-                </motion.span>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-[12px] leading-relaxed font-mono ${
-                    v.supported ? "text-dim" : "text-danger"
-                  }`}>
-                    {v.claim}
-                  </p>
-                  {v.explanation && (
-                    <p className="text-[11px] text-muted mt-0.5 italic font-mono leading-relaxed">
-                      {v.explanation}
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ ...springBouncy, delay: i * 0.03 }}
+                    className={`mt-0.5 shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                      supported
+                        ? "bg-success-soft text-success"
+                        : "bg-danger-soft text-danger"
+                    }`}
+                  >
+                    {supported ? "✓" : "✗"}
+                  </motion.span>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-[12px] leading-relaxed font-mono ${
+                      supported ? "text-dim" : "text-danger"
+                    }`}>
+                      {v.claim || v.claim_text}
                     </p>
-                  )}
-                </div>
-              </motion.div>
-            ))}
+                    {v.explanation && (
+                      <p className="text-[11px] text-muted mt-0.5 italic font-mono leading-relaxed">
+                        {v.explanation}
+                      </p>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </motion.div>
       )}
