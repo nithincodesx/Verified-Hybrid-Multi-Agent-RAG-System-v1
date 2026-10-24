@@ -145,7 +145,7 @@ function Spinner() {
 
 /* ── Main component ─────────────────────────────────────────────── */
 
-export default function ProviderSettings({ onClose, onSaved }) {
+export default function ProviderSettings({ open = true, onClose, onSaved }) {
   const [provider, setProvider] = useState("ollama");
   const [models, setModels] = useState(DEFAULT_MODELS);
   const [keys, setKeys] = useState({ openai: "", openrouter: "" });
@@ -221,21 +221,24 @@ export default function ProviderSettings({ onClose, onSaved }) {
 
   const active = PROVIDERS.find((p) => p.id === provider);
 
+  // Guard: must be AFTER all hooks to satisfy React's Rules of Hooks
+  if (open === false) return null;
+
   return (
     <motion.div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 cursor-pointer"
       role="dialog"
       aria-modal="true"
       aria-label="Model provider settings"
+      onClick={onClose}
     >
       {/* Backdrop */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.25 }}
-        className="absolute inset-0 bg-black/55 backdrop-blur-sm"
-        onClick={onClose}
+      <div
+        className="absolute inset-0 bg-black/55 backdrop-blur-sm pointer-events-none"
       />
 
       {/* Panel */}
@@ -244,7 +247,8 @@ export default function ProviderSettings({ onClose, onSaved }) {
         animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
         exit={{ opacity: 0, scale: 0.95, y: 12, filter: "blur(8px)" }}
         transition={spring}
-        className="relative glass-elevated rounded-2xl w-full max-w-lg p-6 max-h-[85vh] overflow-y-auto"
+        className="relative glass-elevated rounded-2xl w-full max-w-lg p-6 max-h-[85vh] overflow-y-auto cursor-default"
+        onClick={(e) => e.stopPropagation()}
       >
         <GlowingEffect spread={48} glow proximity={72} inactiveZone={0.005} borderWidth={1.25} />
         {/* Header */}

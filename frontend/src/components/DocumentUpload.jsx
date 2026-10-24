@@ -1,14 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { uploadDocument, getUploadStatus } from "../api";
-import GlowingEffect from "./GlowingEffect";
 
-/* ── Spring presets ─────────────────────────────────────────────── */
-const spring = { type: "spring", stiffness: 240, damping: 24, mass: 0.85 };
-const springBouncy = { type: "spring", stiffness: 420, damping: 12, mass: 0.5 };
-const springLiquid = { type: "spring", stiffness: 140, damping: 28, mass: 1.1 };
-
-export default function DocumentUpload({ onUploaded }) {
+export default function DocumentUpload({ onUploaded, compact = false }) {
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState(null);
@@ -35,9 +29,7 @@ export default function DocumentUpload({ onUploaded }) {
         return;
       }
       if (status.status === "not_found") {
-        // Server restarted or the task expired — stop polling instead of
-        // hanging on "Processing…" forever.
-        setError("Upload task no longer exists — the server may have restarted. Please try again.");
+        setError("Upload task no longer exists. Please try again.");
         setResult({ success: false });
         setUploading(false);
         setStatusText("");
@@ -45,8 +37,7 @@ export default function DocumentUpload({ onUploaded }) {
       }
       pollAttemptsRef.current += 1;
       if (pollAttemptsRef.current > 120) {
-        // ~2 minute cap — give up with a clear message
-        setError("Upload is taking too long. Check that your LLM provider (Ollama / OpenAI / OpenRouter) is running and reachable.");
+        setError("Upload is taking too long. Check that your LLM provider is running.");
         setResult({ success: false });
         setUploading(false);
         setStatusText("");
@@ -65,7 +56,7 @@ export default function DocumentUpload({ onUploaded }) {
   useEffect(() => () => pollRef.current && clearTimeout(pollRef.current), []);
 
   const handleFile = useCallback(async (file) => {
-    if (!file) return;
+    if (!file || uploading) return;
     setUploading(true);
     setResult(null);
     setError(null);
@@ -87,7 +78,7 @@ export default function DocumentUpload({ onUploaded }) {
       setUploading(false);
       setStatusText("");
     }
-  }, [pollStatus]);
+  }, [pollStatus, uploading]);
 
   const onDrop = useCallback((e) => {
     e.preventDefault();
@@ -106,148 +97,76 @@ export default function DocumentUpload({ onUploaded }) {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 24, filter: "blur(6px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      transition={{ ...spring, delay: 0.08 }}
-      className="w-full max-w-3xl mx-auto mb-6"
-    >
-      <div className="flex items-center gap-2 mb-3">
-        <motion.svg
-          animate={{ y: [0, -2, 0] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-        >
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-          <polyline points="17 8 12 3 7 8" />
-          <line x1="12" y1="3" x2="12" y2="15" />
-        </motion.svg>
-        <span className="mono-metric font-semibold text-muted uppercase tracking-wider">Upload Document</span>
-      </div>
+    <div className="w-full">
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".txt,.md,.pdf,.csv,.json,.docx"
+        onChange={onInputChange}
+        className="hidden"
+      />
 
-      {/* Drop zone */}
-      <motion.div
+      <div
         onDrop={onDrop}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onClick={onClick}
-        animate={{
-          scale: dragging ? 1.005 : 1,
-          borderColor: dragging
-            ? "var(--accent-border-active)"
-            : "var(--border-glass)",
-          background: dragging
-            ? "var(--glow-ambient)"
-            : "var(--bg-card)",
-        }}
-        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        className={`glass relative overflow-hidden rounded-2xl p-5 text-center cursor-pointer ${
-          uploading ? "pointer-events-none" : ""
+        className={`border-2 border-dashed rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 select-none ${
+          dragging
+            ? "border-slate-800 dark:border-slate-200 bg-slate-100/90 dark:bg-slate-800/80"
+            : "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 hover:bg-slate-100/60 dark:hover:bg-slate-800/50"
         }`}
-        whileHover={!uploading ? { scale: 1.002 } : {}}
       >
-        <GlowingEffect spread={40} glow proximity={64} inactiveZone={0.01} />
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".txt,.md,.pdf,.csv,.json"
-          className="hidden"
-          onChange={onInputChange}
-          disabled={uploading}
-        />
-
         {uploading ? (
-          <div className="flex flex-col items-center gap-3 py-4">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              className="relative w-8 h-8"
-            >
-              <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-accent border-r-[var(--accent-border-focus)]" />
-              <div className="absolute inset-[2px] rounded-full border-2 border-transparent border-b-accent-glow border-l-accent-soft" />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex flex-col items-center gap-1"
-            >
-              <span className="text-[13px] text-muted font-mono">{statusText || "Processing…"}</span>
-              <span className="text-[10px] text-dim font-mono">Please wait while we process your file</span>
-            </motion.div>
+          <div className="flex flex-col items-center py-2">
+            <svg className="animate-spin h-6 w-6 text-slate-700 dark:text-slate-300 mb-2" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{statusText}</span>
           </div>
         ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col items-center gap-3 py-4"
-          >
-            <motion.svg
-              animate={{ y: [0, -3, 0] }}
-              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-              width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"
-            >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </motion.svg>
-            <span className="text-[13px] text-muted font-mono">
-              <span className="text-accent underline underline-offset-2 decoration-dashed decoration-[var(--accent-strong)]">
-                Click to upload
-              </span>{" "}or drag and drop
+          <>
+            <div className="w-8 h-8 rounded-full bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center mb-2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+            </div>
+            <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-200">
+              Drag & drop files here, or click to upload
             </span>
-            <span className="mono-metric text-dim">.txt · .md · .pdf · .csv</span>
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+              PDF, DOCX, TXT, MD (up to 50MB)
+            </span>
+          </>
+        )}
+      </div>
+
+      {/* Messages */}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="mt-2 text-xs text-red-600 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 p-2 rounded-xl text-center"
+          >
+            {error}
           </motion.div>
         )}
-      </motion.div>
-
-      {/* Result feedback */}
-      <AnimatePresence>
-        {result && !uploading && (
+        {result?.success && (
           <motion.div
-            initial={{ opacity: 0, height: 0, filter: "blur(6px)" }}
-            animate={{ opacity: 1, height: "auto", filter: "blur(0px)" }}
-            exit={{ opacity: 0, height: 0, filter: "blur(6px)" }}
-            transition={springLiquid}
-            className="overflow-hidden"
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="mt-2 text-xs text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 p-2 rounded-xl text-center"
           >
-            <motion.div
-              initial={{ y: -8 }}
-              animate={{ y: 0 }}
-              className={`mt-2 glass-light rounded-xl px-4 py-3 flex items-center gap-3 ${
-                result.success ? "border border-[var(--success-border-faint)]" : "border border-[var(--danger-border-faint)]"
-              }`}
-            >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={springBouncy}
-              >
-                {result.success ? (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                ) : (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="8" x2="12" y2="12" />
-                    <line x1="12" y1="16" x2="12.01" y2="16" />
-                  </svg>
-                )}
-              </motion.div>
-              <div className="flex-1 min-w-0">
-                <p className={`text-[13px] font-mono font-medium ${result.success ? "text-success" : "text-danger"}`}>
-                  {result.success
-                    ? `${result.filename} — ${result.chunks} chunk${result.chunks !== 1 ? "s" : ""} ingested`
-                    : "Upload failed"}
-                </p>
-                {error && (
-                  <p className="mono-metric text-muted mt-0.5 leading-relaxed break-words">{error}</p>
-                )}
-              </div>
-            </motion.div>
+            Successfully indexed <span className="font-semibold">{result.filename}</span> ({result.chunks} chunks)
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 }

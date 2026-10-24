@@ -56,13 +56,18 @@ export async function streamPipeline(query, opts = {}) {
         }
       }
       if (dataLines.length > 0) {
-        const data = JSON.parse(dataLines.join("\n"));
-        if (currentEvent === "stage") opts.onStage?.(data);
-        else if (currentEvent === "done") {
-          reader.cancel();
-          return data;
-        } else if (currentEvent === "error") {
-          throw new Error(data.error || "Pipeline stream failed.");
+        try {
+          const data = JSON.parse(dataLines.join("\n"));
+          if (currentEvent === "stage") opts.onStage?.(data);
+          else if (currentEvent === "done") {
+            reader.cancel();
+            return data;
+          } else if (currentEvent === "error") {
+            throw new Error(data.error || "Pipeline stream failed.");
+          }
+        } catch (parseErr) {
+          if (currentEvent === "error") throw parseErr;
+          console.warn("Skipping unparseable SSE frame:", parseErr);
         }
       }
       currentEvent = "message";
@@ -149,6 +154,17 @@ export async function deleteDocument(filename) {
     method: "DELETE",
   });
   if (!res.ok) throw new Error(`Delete failed (${res.status})`);
+  return res.json();
+}
+
+/**
+ * Fetch document details including chunks and preview text.
+ * @param {string} filename - The document filename
+ * @returns {Promise<{filename: string, chunk_count: number, chunks: Array<{id: string, text: string, metadata: object, chunk_index: number}>}>}
+ */
+export async function getDocumentDetails(filename) {
+  const res = await fetch(`${BASE}/documents/${encodeURIComponent(filename)}/details`);
+  if (!res.ok) throw new Error(`Fetch document details failed (${res.status})`);
   return res.json();
 }
 
